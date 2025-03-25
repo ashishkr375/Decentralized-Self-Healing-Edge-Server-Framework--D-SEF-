@@ -59,15 +59,29 @@ def fetch_peer_table(peer_url):
     try:
         response = requests.get(f"{peer_url}/peer", timeout=5)
         if response.status_code == 200:
+            updated = False
             for peer in response.json().get("peers", []):
                 peer_id = f"{peer['ip']}:{peer['port']}"
-                if peer_id != f"{node_info['ip']}:{node_info['port']}":
+                if peer_id != f"{node_info['ip']}:{node_info['port']}" and peer_id not in known_peers:
+                    # Add Chord ID to peer if missing
+                    if "chord_id" not in peer:
+                        from chord import get_chord_id
+                        peer["chord_id"] = get_chord_id(peer["ip"], peer["port"])
                     known_peers[peer_id] = peer
-            print_peer_table()
+                    updated = True
+            
+            # Only print if we actually added new peers
+            if updated:
+                print_peer_table()
     except:
         pass
 
 def gossip_new_peer(peer_url):
+    # Add Chord ID to our node_info if missing
+    if "chord_id" not in node_info:
+        from chord import get_chord_id
+        node_info["chord_id"] = get_chord_id(node_info["ip"], node_info["port"])
+        
     for peer_id, peer in known_peers.items():
         try:
             requests.post(f"http://{peer['ip']}:{peer['port']}/update_peer", json=node_info, timeout=3)
@@ -100,11 +114,16 @@ def health_check():
 
 def print_peer_table():
     print("\n========== UPDATED PEER TABLE ==========")
-    print("| IP                  | Port | Load | Capacity |")
-    print("-----------------------------------------")
+    print("| IP               | Port | Load | Capacity | Chord ID       |")
+    print("---------------------------------------------------------------")
     for peer_id, peer in known_peers.items():
-        print(f"| {peer['ip']:<18} | {peer['port']:<4} | {peer.get('current_load', 0):<4} | {peer.get('promised_capacity', 0):<8} |")
-    print("-----------------------------------------\n")
+        chord_id = peer.get("chord_id", "N/A")
+        if isinstance(chord_id, int):
+            chord_id_short = f"{chord_id % 10000}"
+        else:
+            chord_id_short = "N/A"
+        print(f"| {peer['ip']:<15} | {peer['port']:<4} | {peer.get('current_load', 0):<4} | {peer.get('promised_capacity', 0):<8} | {chord_id_short:<14} |")
+    print("---------------------------------------------------------------\n")
 
 
 def register_routes(app):
@@ -121,6 +140,12 @@ def register_routes(app):
     def update_peer():
         data = request.json
         peer_id = f"{data['ip']}:{data['port']}"
+        
+        # Add Chord ID if missing
+        if "chord_id" not in data:
+            from chord import get_chord_id
+            data["chord_id"] = get_chord_id(data["ip"], data["port"])
+            
         known_peers[peer_id] = data
         print(f"[GOSSIP] Peer table updated with {data['ip']}:{data['port']}")
         return {"status": "peer updated"}

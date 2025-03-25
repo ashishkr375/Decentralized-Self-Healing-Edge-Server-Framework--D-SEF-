@@ -33,12 +33,12 @@ pip install -r requirements.txt
 
 ### Step 3: Start the first edge server (bootstrap node)
 ```bash
-python main.py --ip YOUR_IP --port 5000 --promised_capacity 1000
+python main.py --ip 10.1.3.199 --port 5000 --promised_capacity 1000
 ```
 
 ### Step 4: Start additional edge servers (joining existing node)
 ```bash
-python main.py --ip YOUR_IP --port 5001 --promised_capacity 800 --bootstrap http://YOUR_IP:5000
+python main.py --ip 10.1.3.199 --port 5001 --promised_capacity 800 --bootstrap http://10.1.3.199:5000
 python main.py --ip YOUR_IP --port 5002 --promised_capacity 500 --bootstrap http://YOUR_IP:5000
 ```
 

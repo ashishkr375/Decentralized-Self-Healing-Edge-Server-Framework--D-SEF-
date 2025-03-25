@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decentralized Edge Server Network with Chord DHT</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        h1, h2, h3 {
+            color: #0d6efd;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        h1 {
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 5px;
+            margin-top: 40px;
+        }
+        h3 {
+            margin-top: 30px;
+        }
+        .diagram {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .diagram img {
+            max-width: 100%;
+            height: auto;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            color: #d63384;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        .table {
+            margin-bottom: 0;
+        }
+        .alert {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .flowchart {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .workflow-step {
+            background-color: #f0f8ff;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 5px solid #0d6efd;
+        }
+        .workflow-step h4 {
+            color: #0d6efd;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .table-responsive {
+            margin-bottom: 30px;
+        }
+        .nav-tabs {
+            margin-bottom: 20px;
+        }
+        .nav-tabs .nav-link {
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            font-weight: 700;
+            border-bottom: 2px solid #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Decentralized Edge Server Network with Chord DHT</h1>
+        
+        <div class="alert alert-primary" role="alert">
+            <h4 class="alert-heading">Project Overview</h4>
+            <p>This project implements a decentralized network of edge servers using the Chord Distributed Hash Table (DHT) protocol. The system enables efficient resource discovery, load balancing, and scalable routing in a peer-to-peer architecture.</p>
+        </div>
+
+        <ul class="nav nav-tabs" id="mainTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="architecture-tab" data-bs-toggle="tab" data-bs-target="#architecture" type="button" role="tab" aria-controls="architecture" aria-selected="true">Architecture</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="workflow-tab" data-bs-toggle="tab" data-bs-target="#workflow" type="button" role="tab" aria-controls="workflow" aria-selected="false">Workflow</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="chord-tab" data-bs-toggle="tab" data-bs-target="#chord" type="button" role="tab" aria-controls="chord" aria-selected="false">Chord DHT</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="visualization-tab" data-bs-toggle="tab" data-bs-target="#visualization" type="button" role="tab" aria-controls="visualization" aria-selected="false">Visualization</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="code-tab" data-bs-toggle="tab" data-bs-target="#code" type="button" role="tab" aria-controls="code" aria-selected="false">Implementation</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="mainTabContent">
+            <!-- ARCHITECTURE TAB -->
+            <div class="tab-pane fade show active" id="architecture" role="tabpanel" aria-labelledby="architecture-tab">
+                <h2>System Architecture</h2>
+                
+                <div class="diagram">
+                    <svg width="800" height="500" viewBox="0 0 800 500">
+                        <!-- Background -->
+                        <rect x="0" y="0" width="800" height="500" fill="#f8f9fa" rx="10" ry="10"/>
+                        
+                        <!-- Title -->
+                        <text x="400" y="30" font-size="18" text-anchor="middle" font-weight="bold">Decentralized Edge Server Architecture</text>
+                        
+                        <!-- Edge Server Nodes -->
+                        <circle cx="400" cy="250" r="180" fill="none" stroke="#dee2e6" stroke-width="2" stroke-dasharray="5,5"/>
+                        <circle cx="400" cy="250" r="120" fill="none" stroke="#dee2e6" stroke-width="2" stroke-dasharray="5,5"/>
+                        
+                        <!-- Bootstrap Node -->
+                        <circle cx="400" cy="250" r="40" fill="#0d6efd" opacity="0.8"/>
+                        <text x="400" y="245" font-size="12" text-anchor="middle" fill="white" font-weight="bold">Bootstrap</text>
+                        <text x="400" y="260" font-size="12" text-anchor="middle" fill="white">Node</text>
+                        
+                        <!-- Regular Nodes -->
+                        <circle cx="550" cy="250" r="30" fill="#28a745" opacity="0.8"/>
+                        <text x="550" y="255" font-size="10" text-anchor="middle" fill="white">Node 2</text>
+                        
+                        <circle cx="470" cy="380" r="30" fill="#28a745" opacity="0.8"/>
+                        <text x="470" y="385" font-size="10" text-anchor="middle" fill="white">Node 3</text>
+                        
+                        <circle cx="330" cy="380" r="30" fill="#28a745" opacity="0.8"/>
+                        <text x="330" y="385" font-size="10" text-anchor="middle" fill="white">Node 4</text>
+                        
+                        <circle cx="250" cy="250" r="30" fill="#28a745" opacity="0.8"/>
+                        <text x="250" y="255" font-size="10" text-anchor="middle" fill="white">Node 5</text>
+                        
+                        <circle cx="330" cy="120" r="30" fill="#28a745" opacity="0.8"/>
+                        <text x="330" y="125" font-size="10" text-anchor="middle" fill="white">Node 6</text>
+                        
+                        <circle cx="470" cy="120" r="30" fill="#28a745" opacity="0.8"/>
+                        <text x="470" y="125" font-size="10" text-anchor="middle" fill="white">Node 7</text>
+                        
+                        <!-- Outlying Nodes -->
+                        <circle cx="650" cy="150" r="30" fill="#fd7e14" opacity="0.8"/>
+                        <text x="650" y="155" font-size="10" text-anchor="middle" fill="white">Node 8</text>
+                        
+                        <circle cx="600" cy="400" r="30" fill="#fd7e14" opacity="0.8"/>
+                        <text x="600" y="405" font-size="10" text-anchor="middle" fill="white">Node 9</text>
+                        
+                        <circle cx="200" cy="400" r="30" fill="#fd7e14" opacity="0.8"/>
+                        <text x="200" y="405" font-size="10" text-anchor="middle" fill="white">Node 10</text>
+                        
+                        <circle cx="150" cy="150" r="30" fill="#fd7e14" opacity="0.8"/>
+                        <text x="150" y="155" font-size="10" text-anchor="middle" fill="white">Node 11</text>
+                        
+                        <!-- Client -->
+                        <rect x="50" y="50" width="80" height="40" rx="5" ry="5" fill="#dc3545" opacity="0.8"/>
+                        <text x="90" y="75" font-size="12" text-anchor="middle" fill="white">ESP Client</text>
+                        
+                        <!-- Visualizer -->
+                        <rect x="670" y="50" width="80" height="40" rx="5" ry="5" fill="#6f42c1" opacity="0.8"/>
+                        <text x="710" y="75" font-size="12" text-anchor="middle" fill="white">Visualizer</text>
+                        
+                        <!-- Connections -->
+                        <!-- Bootstrap connections -->
+                        <line x1="420" y1="215" x2="530" y2="235" stroke="#adb5bd" stroke-width="2"/>
+                        <line x1="415" y1="285" x2="455" y2="360" stroke="#adb5bd" stroke-width="2"/>
+                        <line x1="365" y1="285" x2="345" y2="355" stroke="#adb5bd" stroke-width="2"/>
+                        <line x1="365" y1="235" x2="280" y2="250" stroke="#adb5bd" stroke-width="2"/>
+                        <line x1="375" y1="215" x2="345" y2="145" stroke="#adb5bd" stroke-width="2"/>
+                        <line x1="435" y1="225" x2="455" y2="145" stroke="#adb5bd" stroke-width="2"/>
+                        
+                        <!-- Successor connections (ring) -->
+                        <line x1="580" y1="250" x2="630" y2="175" stroke="#28a745" stroke-width="2"/>
+                        <line x1="635" y1="175" x2="580" y2="380" stroke="#28a745" stroke-width="2"/>
+                        <line x1="570" y1="380" x2="500" y2="380" stroke="#28a745" stroke-width="2"/>
+                        <line x1="440" y1="380" x2="360" y2="380" stroke="#28a745" stroke-width="2"/>
+                        <line x1="300" y1="380" x2="220" y2="380" stroke="#28a745" stroke-width="2"/>
+                        <line x1="185" y1="370" x2="165" y2="180" stroke="#28a745" stroke-width="2"/>
+                        <line x1="175" y1="135" x2="300" y2="120" stroke="#28a745" stroke-width="2"/>
+                        <line x1="360" y1="120" x2="440" y2="120" stroke="#28a745" stroke-width="2"/>
+                        <line x1="500" y1="120" x2="520" y2="230" stroke="#28a745" stroke-width="2"/>
+                        
+                        <!-- Client connections -->
+                        <line x1="130" y1="70" x2="380" y2="230" stroke="#dc3545" stroke-width="2" stroke-dasharray="5,5"/>
+                        
+                        <!-- Visualizer connections -->
+                        <line x1="670" y1="70" x2="420" y2="230" stroke="#6f42c1" stroke-width="2" stroke-dasharray="5,5"/>
+                        
+                        <!-- Legend -->
+                        <rect x="50" y="430" width="20" height="20" fill="#0d6efd" opacity="0.8"/>
+                        <text x="80" y="445" font-size="12" dominant-baseline="middle">Bootstrap Node</text>
+                        
+                        <rect x="200" y="430" width="20" height="20" fill="#28a745" opacity="0.8"/>
+                        <text x="230" y="445" font-size="12" dominant-baseline="middle">Inner Ring Nodes</text>
+                        
+                        <rect x="350" y="430" width="20" height="20" fill="#fd7e14" opacity="0.8"/>
+                        <text x="380" y="445" font-size="12" dominant-baseline="middle">Outer Ring Nodes</text>
+                        
+                        <rect x="500" y="430" width="20" height="20" fill="#dc3545" opacity="0.8"/>
+                        <text x="530" y="445" font-size="12" dominant-baseline="middle">ESP Client</text>
+                        
+                        <rect x="650" y="430" width="20" height="20" fill="#6f42c1" opacity="0.8"/>
+                        <text x="680" y="445" font-size="12" dominant-baseline="middle">Visualizer</text>
+                    </svg>
+                </div>
+                
+                <h3>Key Components</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Edge Server Nodes</div>
+                            <div class="card-body">
+                                <p>The core components of our network are the edge server nodes. Each node:</p>
+                                <ul>
+                                    <li>Processes ESP (Edge Service Provider) client requests</li>
+                                    <li>Maintains its position in the Chord ring</li>
+                                    <li>Stores information about other nodes (peers)</li>
+                                    <li>Participates in load balancing</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Bootstrap Node</div>
+                            <div class="card-body">
+                                <p>A special node that helps new nodes join the network:</p>
+                                <ul>
+                                    <li>Entry point for new nodes joining the network</li>
+                                    <li>Authenticates new nodes during registration</li>
+                                    <li>Helps initialize the Chord ring</li>
+                                    <li>Participates in the network like other nodes after setup</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">ESP Client</div>
+                            <div class="card-body">
+                                <p>Edge Service Provider clients send processing requests to our network:</p>
+                                <ul>
+                                    <li>Connects to any node in the network</li>
+                                    <li>Sends workload processing requests</li>
+                                    <li>Receives responses or redirections to more suitable nodes</li>
+                                    <li>Simulates real-world edge computing scenarios</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Chord DHT</div>
+                            <div class="card-body">
+                                <p>The protocol that organizes our network into an efficient structure:</p>
+                                <ul>
+                                    <li>Assigns each node a unique ID in a circular ID space</li>
+                                    <li>Maintains connections between nodes in a ring structure</li>
+                                    <li>Uses finger tables for efficient O(log N) lookups</li>
+                                    <li>Enables scalable, decentralized operation</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Modular Architecture</h3>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Module</th>
+                                <th>Purpose</th>
+                                <th>Key Functionality</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>main.py</code></td>
+                                <td>Application entry point</td>
+                                <td>Server initialization, command-line argument parsing, module orchestration</td>
+                            </tr>
+                            <tr>
+                                <td><code>peers.py</code></td>
+                                <td>Peer table management</td>
+                                <td>Node discovery, peer table maintenance, health checks, gossip protocol</td>
+                            </tr>
+                            <tr>
+                                <td><code>auth.py</code></td>
+                                <td>Node authentication</td>
+                                <td>Challenge-response authentication, key handling, node verification</td>
+                            </tr>
+                            <tr>
+                                <td><code>chord.py</code></td>
+                                <td>Chord DHT protocol</td>
+                                <td>Finger table, successor/predecessor management, key lookups, stabilization</td>
+                            </tr>
+                            <tr>
+                                <td><code>esp_handler.py</code></td>
+                                <td>Client request handling</td>
+                                <td>Processing client requests, load balancing, request forwarding</td>
+                            </tr>
+                            <tr>
+                                <td><code>visualizer.py</code></td>
+                                <td>Network visualization</td>
+                                <td>Real-time network monitoring, interactive UI, debugging tools</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- WORKFLOW TAB -->
+            <div class="tab-pane fade" id="workflow" role="tabpanel" aria-labelledby="workflow-tab">
+                <h2>System Workflow</h2>
+                
+                <div class="flowchart">
+                    <svg width="800" height="600" viewBox="0 0 800 600">
+                        <!-- Background -->
+                        <rect x="0" y="0" width="800" height="600" fill="#f8f9fa" rx="10" ry="10"/>
+                        
+                        <!-- Title -->
+                        <text x="400" y="30" font-size="18" text-anchor="middle" font-weight="bold">Node Joining and Authentication Workflow</text>
+                        
+                        <!-- New Node -->
+                        <rect x="50" y="80" width="120" height="50" rx="5" ry="5" fill="#0d6efd" opacity="0.8"/>
+                        <text x="110" y="110" font-size="14" text-anchor="middle" fill="white">New Node</text>
+                        
+                        <!-- Bootstrap Node -->
+                        <rect x="630" y="80" width="120" height="50" rx="5" ry="5" fill="#28a745" opacity="0.8"/>
+                        <text x="690" y="110" font-size="14" text-anchor="middle" fill="white">Bootstrap Node</text>
+                        
+                        <!-- Arrow 1 -->
+                        <line x1="170" y1="105" x2="630" y2="105" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="400" y="95" font-size="12" text-anchor="middle">1. Registration Request</text>
+                        
+                        <!-- Step 2: Challenge Generation -->
+                        <rect x="630" y="160" width="120" height="50" rx="5" ry="5" fill="#28a745" opacity="0.8"/>
+                        <text x="690" y="185" font-size="12" text-anchor="middle" fill="white">Generate Challenge</text>
+                        <line x1="690" y1="130" x2="690" y2="160" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Arrow 2 -->
+                        <line x1="630" y1="185" x2="170" y2="185" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="400" y="175" font-size="12" text-anchor="middle">2. Return Challenge</text>
+                        
+                        <!-- Step 3: Signature -->
+                        <rect x="50" y="240" width="120" height="50" rx="5" ry="5" fill="#0d6efd" opacity="0.8"/>
+                        <text x="110" y="265" font-size="12" text-anchor="middle" fill="white">Sign Challenge</text>
+                        <line x1="110" y1="210" x2="110" y2="240" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Arrow 3 -->
+                        <line x1="170" y1="265" x2="630" y2="265" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="400" y="255" font-size="12" text-anchor="middle">3. Authentication with Signature</text>
+                        
+                        <!-- Step 4: Verification -->
+                        <rect x="630" y="320" width="120" height="50" rx="5" ry="5" fill="#28a745" opacity="0.8"/>
+                        <text x="690" y="345" font-size="12" text-anchor="middle" fill="white">Verify Signature</text>
+                        <line x1="690" y1="290" x2="690" y2="320" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Step 5: Peer Table -->
+                        <rect x="630" y="400" width="120" height="50" rx="5" ry="5" fill="#28a745" opacity="0.8"/>
+                        <text x="690" y="425" font-size="12" text-anchor="middle" fill="white">Add to Peer Table</text>
+                        <line x1="690" y1="370" x2="690" y2="400" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Arrow 4 -->
+                        <line x1="630" y1="425" x2="170" y2="425" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="400" y="415" font-size="12" text-anchor="middle">4. Confirmation & Peer List</text>
+                        
+                        <!-- Step 6: Chord Join -->
+                        <rect x="50" y="480" width="120" height="50" rx="5" ry="5" fill="#0d6efd" opacity="0.8"/>
+                        <text x="110" y="497" font-size="12" text-anchor="middle" fill="white">Join Chord Ring</text>
+                        <text x="110" y="513" font-size="12" text-anchor="middle" fill="white">Find Successor</text>
+                        <line x1="110" y1="450" x2="110" y2="480" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Step 7: Stabilization -->
+                        <rect x="340" y="480" width="120" height="50" rx="5" ry="5" fill="#6c757d" opacity="0.8"/>
+                        <text x="400" y="497" font-size="12" text-anchor="middle" fill="white">Periodic</text>
+                        <text x="400" y="513" font-size="12" text-anchor="middle" fill="white">Stabilization</text>
+                        <line x1="170" y1="505" x2="340" y2="505" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Step 8: Update Fingers -->
+                        <rect x="630" y="480" width="120" height="50" rx="5" ry="5" fill="#28a745" opacity="0.8"/>
+                        <text x="690" y="497" font-size="12" text-anchor="middle" fill="white">Update Finger</text>
+                        <text x="690" y="513" font-size="12" text-anchor="middle" fill="white">Tables</text>
+                        <line x1="460" y1="505" x2="630" y2="505" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Final State -->
+                        <rect x="340" y="560" width="120" height="30" rx="15" ry="15" fill="#fd7e14" opacity="0.8"/>
+                        <text x="400" y="577" font-size="12" text-anchor="middle" fill="white">Node Fully Joined</text>
+                        <line x1="400" y1="530" x2="400" y2="560" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Arrow markers -->
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#495057"/>
+                            </marker>
+                        </defs>
+                    </svg>
+                </div>
+                
+                <h3>Node Authentication Process</h3>
+                
+                <div class="workflow-step">
+                    <h4>Step 1: Registration Request</h4>
+                    <p>When a new node wants to join the network, it sends a registration request to the bootstrap node. This request includes:</p>
+                    <ul>
+                        <li>The node's IP address and port</li>
+                        <li>The node's promised processing capacity</li>
+                        <li>The node's public key (for authentication)</li>
+                    </ul>
+                    <pre><code>POST /register
+{
+    "ip": "10.1.3.199",
+    "port": 5002,
+    "promised_capacity": 800,
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHK..."
+}</code></pre>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Step 2: Challenge Generation</h4>
+                    <p>The bootstrap node generates a random challenge string and associates it with the requesting node's identifier:</p>
+                    <ul>
+                        <li>Creates a unique random challenge string</li>
+                        <li>Computes a node identifier from the IP and public key</li>
+                        <li>Stores the challenge temporarily, associated with the node ID</li>
+                        <li>Returns the challenge to the requesting node</li>
+                    </ul>
+                    <pre><code>Response:
+{
+    "identifier": "10.1.3.199:5002",
+    "challenge": "a7f4d92e3b6c1508"
+}</code></pre>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Step 3: Challenge Response</h4>
+                    <p>The new node signs the challenge using its private key and sends the signature back:</p>
+                    <ul>
+                        <li>Uses its private key to digitally sign the challenge</li>
+                        <li>Sends the signature along with its identifier and details</li>
+                    </ul>
+                    <pre><code>POST /authenticate
+{
+    "identifier": "10.1.3.199:5002",
+    "signature": "3045022100e8f2f3...",
+    "ip": "10.1.3.199",
+    "port": 5002,
+    "promised_capacity": 800
+}</code></pre>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Step 4: Verification</h4>
+                    <p>The bootstrap node verifies the signature using the public key provided during registration:</p>
+                    <ul>
+                        <li>Retrieves the stored challenge for this node</li>
+                        <li>Uses the public key to verify the signature matches the challenge</li>
+                        <li>If verification succeeds, the node is authenticated</li>
+                    </ul>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Step 5: Peer Integration</h4>
+                    <p>Upon successful verification, the bootstrap node:</p>
+                    <ul>
+                        <li>Adds the new node to its peer table</li>
+                        <li>Returns its own peer table to the new node </li>
+                        <li>Returns its own peer table to the new node</li>
+                        <li>Propagates information about the new node to other peers via gossip protocol</li>
+                    </ul>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Step 6: Chord Ring Integration</h4>
+                    <p>Now that the node is part of the peer table, it can join the Chord ring:</p>
+                    <ul>
+                        <li>The node calculates its position in the Chord ID space using a SHA-1 hash of its IP:port</li>
+                        <li>It asks the bootstrap node to find its successor in the ring</li>
+                        <li>The node initializes its finger table with this information</li>
+                        <li>It updates its predecessor and successor pointers</li>
+                    </ul>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Step 7: Stabilization Process</h4>
+                    <p>Once joined, the node participates in periodic stabilization:</p>
+                    <ul>
+                        <li>Confirms its successor is still alive</li>
+                        <li>Checks if there's a better successor (a node between it and its current successor)</li>
+                        <li>Updates its successor if a better one is found</li>
+                        <li>Notifies its successor that it might be their predecessor</li>
+                    </ul>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Step 8: Finger Table Maintenance</h4>
+                    <p>The node continuously updates its finger table for efficient routing:</p>
+                    <ul>
+                        <li>Periodically selects random finger table entries to update</li>
+                        <li>Finds the correct nodes for these entries through the find_successor operation</li>
+                        <li>Updates the finger table with the correct nodes</li>
+                        <li>This ensures O(log N) lookups even as the network changes</li>
+                    </ul>
+                </div>
+                
+                <h3>Client Request Handling</h3>
+                
+                <div class="flowchart">
+                    <svg width="800" height="500" viewBox="0 0 800 500">
+                        <!-- Background -->
+                        <rect x="0" y="0" width="800" height="500" fill="#f8f9fa" rx="10" ry="10"/>
+                        
+                        <!-- Title -->
+                        <text x="400" y="30" font-size="18" text-anchor="middle" font-weight="bold">ESP Client Request Flow</text>
+                        
+                        <!-- ESP Client -->
+                        <rect x="50" y="80" width="140" height="50" rx="5" ry="5" fill="#dc3545" opacity="0.8"/>
+                        <text x="120" y="110" font-size="14" text-anchor="middle" fill="white">ESP Client</text>
+                        
+                        <!-- Step 1: Initial Request -->
+                        <rect x="330" y="80" width="140" height="50" rx="5" ry="5" fill="#28a745" opacity="0.8"/>
+                        <text x="400" y="105" font-size="12" text-anchor="middle" fill="white">Edge Server</text>
+                        <text x="400" y="125" font-size="10" text-anchor="middle" fill="white">(First Contact)</text>
+                        
+                        <!-- Arrow 1 -->
+                        <line x1="190" y1="105" x2="330" y2="105" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="260" y="95" font-size="12" text-anchor="middle">1. Process Request</text>
+                        
+                        <!-- Step 2: Capacity Check -->
+                        <rect x="330" y="160" width="140" height="50" rx="5" ry="5" fill="#28a745" opacity="0.8"/>
+                        <text x="400" y="177" font-size="12" text-anchor="middle" fill="white">Check Capacity</text>
+                        <text x="400" y="193" font-size="10" text-anchor="middle" fill="white">Current Load < Promised?</text>
+                        <line x1="400" y1="130" x2="400" y2="160" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Step 3a: Process Locally -->
+                        <rect x="160" y="230" width="120" height="50" rx="5" ry="5" fill="#28a745" opacity="0.8"/>
+                        <text x="220" y="255" font-size="12" text-anchor="middle" fill="white">Process Locally</text>
+                        <line x1="350" y1="185" x2="250" y2="230" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="270" y="210" font-size="12" text-anchor="middle">Yes</text>
+                        
+                        <!-- Step 3b: Find Better Server -->
+                        <rect x="500" y="230" width="120" height="50" rx="5" ry="5" fill="#28a745" opacity="0.8"/>
+                        <text x="560" y="247" font-size="12" text-anchor="middle" fill="white">Find Better</text>
+                        <text x="560" y="263" font-size="12" text-anchor="middle" fill="white">Edge Server</text>
+                        <line x1="450" y1="185" x2="530" y2="230" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="510" y="210" font-size="12" text-anchor="middle">No</text>
+                        
+                        <!-- Step 4: Use Chord to find less loaded server -->
+                        <rect x="500" y="320" width="120" height="60" rx="5" ry="5" fill="#0d6efd" opacity="0.8"/>
+                        <text x="560" y="340" font-size="12" text-anchor="middle" fill="white">Query Chord</text>
+                        <text x="560" y="355" font-size="10" text-anchor="middle" fill="white">Find server with</text>
+                        <text x="560" y="370" font-size="10" text-anchor="middle" fill="white">lowest load</text>
+                        <line x1="560" y1="280" x2="560" y2="320" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Step 5: Redirect client -->
+                        <line x1="500" y1="350" x2="120" y2="350" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="300" y="340" font-size="12" text-anchor="middle">4. Redirect to Better Server</text>
+                        
+                        <!-- Step 6: ESP contacts redirected server -->
+                        <rect x="50" y="170" width="140" height="50" rx="5" ry="5" fill="#dc3545" opacity="0.8"/>
+                        <text x="120" y="195" font-size="12" text-anchor="middle" fill="white">Redirected Client</text>
+                        <line x1="120" y1="350" x2="120" y2="220" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Step 7: Contact new server -->
+                        <line x1="190" y1="195" x2="330" y2="195" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="260" y="185" font-size="12" text-anchor="middle">5. Contact New Server</text>
+                        
+                        <!-- Client Response -->
+                        <rect x="160" y="400" width="120" height="50" rx="5" ry="5" fill="#28a745" opacity="0.8"/>
+                        <text x="220" y="425" font-size="12" text-anchor="middle" fill="white">Send Response</text>
+                        <line x1="220" y1="280" x2="220" y2="400" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Final Response -->
+                        <line x1="160" y1="425" x2="120" y2="425" stroke="#495057" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Arrow markers -->
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#495057"/>
+                            </marker>
+                        </defs>
+                    </svg>
+                </div>
+                
+                <h3>Load Balancing Process</h3>
+                
+                <div class="workflow-step">
+                    <h4>Step 1: Client Request Processing</h4>
+                    <p>The ESP client initially connects to any node in the network with a processing request:</p>
+                    <ul>
+                        <li>Sends a processing workload of a specific size</li>
+                        <li>The receiving edge server evaluates its current load</li>
+                        <li>Determines if it can handle the request locally</li>
+                    </ul>
+                    <pre><code>POST /handle_request
+{
+    "processing_load": 300
+}</code></pre>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Step 2: Capacity-Based Decision</h4>
+                    <p>The edge server makes a decision based on its current load and capacity:</p>
+                    <ul>
+                        <li>If current_load + new_load ≤ promised_capacity, it processes the request locally</li>
+                        <li>If capacity would be exceeded, it needs to find a better server</li>
+                        <li>The load information for all nodes is regularly updated in the peer table</li>
+                    </ul>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Step 3: Finding an Optimal Server</h4>
+                    <p>When a request needs to be forwarded, the system uses the Chord DHT to efficiently find a suitable node:</p>
+                    <ul>
+                        <li>Queries known peers for their current load</li>
+                        <li>Uses Chord finger table to efficiently reach distant parts of the network</li>
+                        <li>Selects the node with the lowest load-to-capacity ratio</li>
+                        <li>This distribution ensures optimal resource utilization across the network</li>
+                    </ul>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Step 4: Request Redirection</h4>
+                    <p>Once a better server is found, the client is redirected:</p>
+                    <ul>
+                        <li>The original server returns the IP and port of the better server</li>
+                        <li>The client connects to the new server and re-submits the request</li>
+                        <li>This approach minimizes overhead for the redirecting server</li>
+                    </ul>
+                    <pre><code>Response:
+{
+    "redirected": "10.1.3.199:5009"
+}</code></pre>
+                </div>
+            </div>
+            
+            <!-- CHORD DHT TAB -->
+            <div class="tab-pane fade" id="chord" role="tabpanel" aria-labelledby="chord-tab">
+                <h2>Chord Distributed Hash Table</h2>
+                
+                <div class="alert alert-info">
+                    <p>The Chord protocol is the backbone of our distributed edge server network. It provides a scalable, efficient way to locate resources in a decentralized environment, with lookup operations scaling logarithmically with the number of nodes (O(log N)).</p>
+                </div>
+                
+                <div class="diagram">
+                    <svg width="600" height="600" viewBox="0 0 600 600">
+                        <!-- Background -->
+                        <rect x="0" y="0" width="600" height="600" fill="#f8f9fa" rx="10" ry="10"/>
+                        
+                        <!-- Title -->
+                        <text x="300" y="30" font-size="18" text-anchor="middle" font-weight="bold">Chord Ring Structure</text>
+                        
+                        <!-- Outer Circle -->
+                        <circle cx="300" cy="300" r="250" fill="none" stroke="#ced4da" stroke-width="2"/>
+                        
+                        <!-- Chord ID markers -->
+                        <text x="300" y="35" font-size="12" text-anchor="middle">0</text>
+                        <text x="565" y="300" font-size="12" text-anchor="middle">2^159/4</text>
+                        <text x="300" y="575" font-size="12" text-anchor="middle">2^159/2</text>
+                        <text x="35" y="300" font-size="12" text-anchor="middle">3×2^159/4</text>
+                        
+                        <!-- Hash space markers -->
+                        <line x1="300" y1="50" x2="300" y2="70" stroke="#6c757d" stroke-width="1"/>
+                        <line x1="550" y1="300" x2="530" y2="300" stroke="#6c757d" stroke-width="1"/>
+                        <line x1="300" y1="550" x2="300" y2="530" stroke="#6c757d" stroke-width="1"/>
+                        <line x1="50" y1="300" x2="70" y2="300" stroke="#6c757d" stroke-width="1"/>
+                        
+                        <!-- Nodes on the ring -->
+                        <circle cx="300" cy="50" r="20" fill="#0d6efd" opacity="0.8"/>
+                        <text x="300" y="55" font-size="12" text-anchor="middle" fill="white">N1</text>
+                        
+                        <circle cx="500" cy="200" r="20" fill="#28a745" opacity="0.8"/>
+                        <text x="500" y="205" font-size="12" text-anchor="middle" fill="white">N2</text>
+                        
+                        <circle cx="480" cy="420" r="20" fill="#28a745" opacity="0.8"/>
+                        <text x="480" y="425" font-size="12" text-anchor="middle" fill="white">N3</text>
+                        
+                        <circle cx="250" cy="490" r="20" fill="#28a745" opacity="0.8"/>
+                        <text x="250" y="495" font-size="12" text-anchor="middle" fill="white">N4</text>
+                        
+                        <circle cx="100" cy="350" r="20" fill="#28a745" opacity="0.8"/>
+                        <text x="100" y="355" font-size="12" text-anchor="middle" fill="white">N5</text>
+                        
+                        <circle cx="150" cy="120" r="20" fill="#28a745" opacity="0.8"/>
+                        <text x="150" y="125" font-size="12" text-anchor="middle" fill="white">N6</text>
+                        
+                        <!-- Successor pointers -->
+                        <path d="M315 38 A 260 260 0 0 1 485 188" fill="none" stroke="#dc3545" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <path d="M513 212 A 260 260 0 0 1 467 408" fill="none" stroke="#dc3545" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <path d="M467 435 A 260 260 0 0 1 265 480" fill="none" stroke="#dc3545" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <path d="M235 503 A 260 260 0 0 1 115 363" fill="none" stroke="#dc3545" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <path d="M87 340 A 260 260 0 0 1 140 138" fill="none" stroke="#dc3545" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <path d="M165 107 A 260 260 0 0 1 285 62" fill="none" stroke="#dc3545" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- Finger table example -->
+                        <line x1="300" y1="50" x2="500" y2="200" stroke="#ffc107" stroke-width="1.5" stroke-dasharray="5,3"/>
+                        <line x1="300" y1="50" x2="480" y2="420" stroke="#ffc107" stroke-width="1.5" stroke-dasharray="5,3"/>
+                        <line x1="300" y1="50" x2="100" y2="350" stroke="#ffc107" stroke-width="1.5" stroke-dasharray="5,3"/>
+                        
+                        <!-- Finger table label -->
+                        <rect x="80" y="450" width="160" height="120" rx="5" ry="5" fill="white" stroke="#6c757d" stroke-width="1"/>
+                        <text x="160" y="470" font-size="12" text-anchor="middle" font-weight="bold">N1's Finger Table</text>
+                        
+                        <text x="110" y="495" font-size="10" text-anchor="start">start(0) = 1: N2</text>
+                        <text x="110" y="515" font-size="10" text-anchor="start">start(1) = 2: N2</text>
+                        <text x="110" y="535" font-size="10" text-anchor="start">start(2) = 4: N3</text>
+                        <text x="110" y="555" font-size="10" text-anchor="start">start(80) = 2^80: N5</text>
+                        
+                        <!-- Legend -->
+                        <rect x="350" y="450" width="20" height="10" fill="#0d6efd" opacity="0.8"/>
+                        <text x="375" y="459" font-size="10" dominant-baseline="middle">Node with finger table shown</text>
+                        
+                        <rect x="350" y="470" width="20" height="10" fill="#28a745" opacity="0.8"/>
+                        <text x="375" y="479" font-size="10" dominant-baseline="middle">Other nodes</text>
+                        
+                        <line x1="350" y1="490" x2="370" y2="490" stroke="#dc3545" stroke-width="2"/>
+                        <text x="375" y="494" font-size="10" dominant-baseline="middle">Successor pointers</text>
+                        
+                        <line x1="350" y1="510" x2="370" y2="510" stroke="#ffc107" stroke-width="1.5" stroke-dasharray="5,3"/>
+                        <text x="375" y="514" font-size="10" dominant-baseline="middle">Finger table entries</text>
+                        
+                        <!-- Arrow markers -->
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#dc3545"/>
+                            </marker>
+                        </defs>
+                    </svg>
+                </div>
+                
+                <h3>Chord Protocol Components</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Node Identifier</div>
+                            <div class="card-body">
+                                <p>Each node in the Chord ring is assigned a unique identifier:</p>
+                                <ul>
+                                    <li>Generated using SHA-1 hash of the node's IP:port</li>
+                                    <li>Creates a 160-bit identifier (value between 0 and 2^160-1)</li>
+                                    <li>Places the node at a specific position in the circular ID space</li>
+                                    <li>Uniformly distributes nodes around the ring</li>
+                                </ul>
+                                <pre><code>def get_chord_id(ip, port):
+    key = f"{ip}:{port}"
+    return int(hashlib.sha1(key.encode()).hexdigest(), 16)</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Successor and Predecessor</div>
+                            <div class="card-body">
+                                <p>Each node maintains references to its immediate neighbors:</p>
+                                <ul>
+                                    <li><strong>Successor:</strong> The next node clockwise in the ID space</li>
+                                    <li><strong>Predecessor:</strong> The previous node counterclockwise in the ID space</li>
+                                    <li>These pointers form the base structure of the Chord ring</li>
+                                    <li>Used for maintaining ring integrity during joins and failures</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Finger Table</div>
+                            <div class="card-body">
+                                <p>The key to Chord's logarithmic lookup efficiency:</p>
+                                <ul>
+                                    <li>Each node maintains a table with up to m entries (m=160 for SHA-1)</li>
+                                    <li>The i-th entry points to successor(n + 2^i) mod 2^m</li>
+                                    <li>Provides shortcuts to distant parts of the ring</li>
+                                    <li>First entries cover nearby nodes, later entries cover exponentially larger distances</li>
+                                </ul>
+                                <pre><code>finger_table[i] = {
+    "start": (node_id + 2^i) % 2^160,
+    "node": successor_node
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Distance Calculation</div>
+                            <div class="card-body">
+                                <p>In Chord, distance is calculated clockwise around the ring:</p>
+                                <ul>
+                                    <li>Distance from node A to B = (B - A) mod 2^m</li>
+                                    <li>If B < A, the distance wraps around the ring</li>
+                                    <li>This calculation determines if a node is responsible for a key</li>
+                                    <li>Used to check if IDs are between two points on the ring</li>
+                                </ul>
+                                <pre><code>def is_between(start, id, end):
+    if start < end:
+        return start < id <= end
+    else:  # end wrapped around 0
+        return start < id or id <= end</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Key Chord Operations</h3>
+                
+                <div class="workflow-step">
+                    <h4>Finding a Node Successor</h4>
+                    <p>The fundamental operation in Chord is finding the successor node for a given ID:</p>
+                    <ul>
+                        <li>If the ID is between a node and its successor, the successor is responsible</li>
+                        <li>Otherwise, forward the query to the closest preceding node in the finger table</li>
+                        <li>This operation is used for node lookups, routing, and data placement</li>
+                    </ul>
+                    <pre><code>def find_successor(id):
+    # If id is between us and our successor
+    if is_between(node_id, id, successor_id):
+        return successor
+    
+    # Otherwise, forward to closest preceding node
+    n_prime = closest_preceding_node(id)
+    return n_prime.find_successor(id)</code></pre>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Joining the Chord Ring</h4>
+                    <p>When a new node wants to join the Chord ring:</p>
+                    <ol>
+                        <li>The node calculates its Chord ID based on its IP:port</li>
+                        <li>It contacts a bootstrap node already in the network</li>
+                        <li>Asks the bootstrap to find its successor in the ring</li>
+                        <li>Sets this node as its successor and initializes its finger table</li>
+                        <li>Over time, the stabilization process will update other nodes' finger tables</li>
+                    </ol>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Ring Stabilization</h4>
+                    <p>To maintain correct finger tables and ring structure despite nodes joining and leaving:</p>
+                    <ol>
+                        <li>Each node periodically checks if its successor is still alive</li>
+                        <li>It asks its successor for the successor's predecessor</li>
+                        <li>If this node should be between them, it updates its successor</li>
+                        <li>The node notifies its successor that it might be its predecessor</li>
+                        <li>This process converges to a stable ring even with concurrent join operations</li>
+                    </ol>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Finger Table Maintenance</h4>
+                    <p>To ensure efficient routing, finger tables are periodically updated:</p>
+                    <ol>
+                        <li>Each node periodically picks a random finger to fix</li>
+                        <li>For finger i, it finds the successor of (n + 2^i)</li>
+                        <li>It updates that finger table entry with the correct successor</li>
+                        <li>This randomized process ensures the finger table eventually becomes correct</li>
+                        <li>With correct finger tables, lookups complete in O(log N) hops</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- VISUALIZATION TAB -->
+            <div class="tab-pane fade" id="visualization" role="tabpanel" aria-labelledby="visualization-tab">
+                <h2>Chord Ring Visualization</h2>
+                
+                <div class="alert alert-primary">
+                    <p>Our system includes a real-time visualization tool that provides an interactive view of the Chord ring. This helps in understanding the network structure, monitoring node status, and debugging.</p>
+                </div>
+                
+                <div class="text-center">
+                    <img src="https://i.ibb.co/HBJrVNK/chord-visualization.jpg" alt="Chord Visualization" class="img-fluid border rounded mb-4" style="max-width: 800px;">
+                </div>
+                
+                <h3>Visualization Features</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Ring Representation</div>
+                            <div class="card-body">
+                                <ul>
+                                    <li>Nodes positioned on a circle based on their Chord ID</li>
+                                    <li>Color-coded nodes for different roles (bootstrap, regular)</li>
+                                    <li>Node size indicates capacity/importance</li>
+                                    <li>Connections between nodes show the successor relationships</li>
+                                    <li>Finger table connections shown as dashed lines</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Node Details Panel</div>
+                            <div class="card-body">
+                                <ul>
+                                    <li>Displays detailed information when clicking on a node</li>
+                                    <li>Shows node IP, port, and Chord ID</li>
+                                    <li>Current load and capacity</li>
+                                    <li>Successor and predecessor information</li>
+                                    <li>Finger table entries with distance information</li>
+                                    <li>List of known peers sorted by distance</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Technical Implementation</h3>
+                
+                <div class="workflow-step">
+                    <h4>Data Collection</h4>
+                    <p>The visualizer collects data from all nodes in the network:</p>
+                    <ul>
+                        <li>Scans IP range and ports to discover active nodes</li>
+                        <li>Queries each node for its status, finger table, and peer information</li>
+                        <li>Combines data to create a comprehensive view of the network</li>
+                        <li>Updates automatically every few seconds to show real-time changes</li>
+                    </ul>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Interactive Features</h4>
+                    <p>The visualization provides several interactive capabilities:</p>
+                    <ul>
+                        <li>Click on any node to view its detailed information</li>
+                        <li>See connections updated in real-time as nodes join or leave</li>
+                        <li>Visualize distance calculations between nodes</li>
+                        <li>Observe how finger tables provide shortcuts across the ring</li>
+                        <li>Manual refresh button for immediate updates</li>
+                    </ul>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Debugging Tools</h4>
+                    <p>The visualization serves as a powerful debugging interface:</p>
+                    <ul>
+                        <li>Verify proper node distribution around the ID space</li>
+                        <li>Monitor node health and load balancing effectiveness</li>
+                        <li>Detect network partitions or isolated nodes</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- IMPLEMENTATION TAB -->
+            <div class="tab-pane fade" id="code" role="tabpanel" aria-labelledby="code-tab">
+                <h2>Technical Implementation</h2>
+                
+                <div class="alert alert-secondary">
+                    <p>Our implementation follows a modular design with clear separation of concerns. This section provides an overview of the key code components and how they interact.</p>
+                </div>
+                
+                <h3>Core Modules</h3>
+                
+                <div class="workflow-step">
+                    <h4>Node Initialization (main.py)</h4>
+                    <p>The main entry point that initializes the edge server node:</p>
+                    <pre><code>def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ip", type=str, required=True)
+    parser.add_argument("--port", type=int, required=True)
+    parser.add_argument("--promised_capacity", type=int, required=True)
+    parser.add_argument("--bootstrap", type=str)
+    args = parser.parse_args()
+
+    app = Flask(__name__)
+    node = Node()
+    setup_routes(app, node)
+    
+    key_pair = create_key_pair()
+    
+    if args.bootstrap:
+        success, node_data = join_network(
+            args.bootstrap,
+            args.ip,
+            str(args.port),
+            args.promised_capacity,
+            key_pair
+        )
+        if success:
+            node.node_info.update(node_data)
+            node.known_peers[node_data["identifier"]] = node_data
+    else:
+        node.initialize_node(args.ip, args.port, args.promised_capacity, key_pair)
+
+    # Start Flask server
+    threading.Thread(target=lambda: app.run(
+        host='0.0.0.0', port=args.port, debug=False, use_reloader=False
+    )).start()
+
+    # Start background processes
+    while True:
+        time.sleep(30)
+        node.update_load()
+        # Update peers with current state
+        for peer in node.known_peers.values():
+            if peer["identifier"] == node.node_info["identifier"]:
+                continue
+            try:
+                requests.post(
+                    f"http://{peer['ip']}:{peer['port']}/update_peer",
+                    json=node.node_info,
+                    timeout=5
+                )
+            except:
+                pass</code></pre>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Chord Implementation (chord.py)</h4>
+                    <p>The core Chord DHT protocol implementation with finger table management:</p>
+                    <pre><code>def find_successor(id):
+    """Find the successor node for a given ID"""
+    # If we are alone in the network
+    if successor is None or successor["chord_id"] == node_info["chord_id"]:
+        return node_info
+    
+    # If id is between us and our successor
+    if is_between(node_info["chord_id"], id, successor["chord_id"]):
+        return successor
+    
+    # Otherwise, find the closest preceding node and ask it
+    n_prime = closest_preceding_node(id)
+    
+    # If that's us, return our successor
+    if n_prime["chord_id"] == node_info["chord_id"]:
+        return successor
+    
+    # Otherwise, forward the query
+    try:
+        url = f"http://{n_prime['ip']}:{n_prime['port']}/chord/find_successor"
+        response = requests.get(url, params={"id": id}, timeout=3)
+        if response.status_code == 200:
+            return response.json()
+    except:
+        # If we can't reach that node, return our best guess
+        return successor
+    
+    return successor
+
+def closest_preceding_node(id):
+    """Find the closest preceding node for a given ID"""
+    node_id = node_info["chord_id"]
+    
+    # Check finger table from largest to smallest distance
+    for i in range(CHORD_BITS - 1, -1, -1):
+        finger_node = finger_table[i]["node"]
+        if finger_node and is_between(node_id, finger_node["chord_id"], id):
+            return finger_node
+    
+    return node_info
+
+def is_between(start, id, end):
+    """Check if id is in the range (start, end] on the Chord ring"""
+    # Handle wrapping around the ring
+    if start < end:
+        return start < id <= end
+    else:  # end wrapped around 0
+        return start < id or id <= end</code></pre>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Authentication (auth.py)</h4>
+                    <p>Secure node authentication using public-key cryptography:</p>
+                    <pre><code>@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    ip = data.get("ip")
+    port = data.get("port")
+    promised_capacity = data.get("promised_capacity")
+    public_key_pem = data.get("public_key")
+    
+    if not all([ip, port, promised_capacity, public_key_pem]):
+        return jsonify({"error": "Missing parameters"}), 400
+        
+    identifier = compute_identifier(ip, public_key_pem)
+    challenge = generate_nonce()
+    node.pending_challenges[identifier] = challenge
+    
+    return jsonify({
+        "identifier": identifier,
+        "challenge": challenge
+    })
+
+@app.route('/authenticate', methods=['POST'])
+def authenticate():
+    data = request.json
+    identifier = data.get("identifier")
+    signature_hex = data.get("signature")
+    public_key_pem = data.get("public_key")
+    ip = data.get("ip")
+    port = data.get("port")
+    promised_capacity = data.get("promised_capacity")
+    
+    challenge = node.pending_challenges.get(identifier)
+    if not challenge:
+        return jsonify({"error": "No pending challenge"}), 400
+        
+    if not verify_signature(public_key_pem, challenge, signature_hex):
+        return jsonify({"error": "Authentication failed"}), 400
+        
+    new_peer = {
+        "ip": ip,
+        "port": port,
+        "public_key": public_key_pem,
+        "promised_capacity": promised_capacity,
+        "identifier": identifier,
+        "credibility_score": 100,
+        "current_load": simulate_load()
+    }
+    
+    node.known_peers[identifier] = new_peer
+    del node.pending_challenges[identifier]
+    
+    threading.Thread(
+        target=propagate_new_peer,
+        args=(new_peer, node.known_peers, node.node_info)
+    ).start()
+    
+    return jsonify({"status": "success", "node": new_peer})</code></pre>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Load Balancing (esp_handler.py)</h4>
+                    <p>Handles ESP client requests and implements load balancing logic:</p>
+                    <pre><code>@app.route('/handle_request', methods=['POST'])
+def handle_request():
+    data = request.json
+    processing_load = data.get('processing_load', 10)
+
+    print("------------ ESP REQUEST RECEIVED ------------")
+    print(f"[LOAD] Incoming ESP load packet: {processing_load} units")
+
+    node_info["current_load"] += processing_load
+    print(f"[STATUS] Current Load: {node_info['current_load']} / {node_info['promised_capacity']}")
+
+    if node_info["current_load"] > node_info["promised_capacity"]:
+        print("[WARNING] Capacity exceeded. Trying to forward...")
+        best_peer = None
+        for peer_id, peer in known_peers.items():
+            if peer["current_load"] < peer["promised_capacity"]:
+                best_peer = peer
+                break
+
+        if best_peer:
+            try:
+                print(f"[FORWARD] Redirecting load to {best_peer['ip']}:{best_peer['port']}")
+                requests.post(f"http://{best_peer['ip']}:{best_peer['port']}/handle_request", 
+                              json={"processing_load": processing_load})
+                return jsonify({"redirected": f"{best_peer['ip']}:{best_peer['port']}"})
+            except:
+                print("[ERROR] Failed to forward. Accepting locally.")
+    return jsonify({"status": "Accepted locally"})</code></pre>
+                </div>
+                
+                <div class="workflow-step">
+                    <h4>Visualization Server (visualizer.py)</h4>
+                    <p>Implements the real-time Chord ring visualization:</p>
+                    <pre><code>def update_node_data():
+    """Periodically fetch data from all nodes"""
+    global nodes_data, chord_ring_data, last_update
+    
+    while True:
+        try:
+            # Scan ports to find active nodes
+            active_ports = []
+            base_url = "http://10.1.3.199"
+            
+            # Scan more ports and increase timeout
+            for port in range(5001, 5018):
+                try:
+                    response = requests.get(f"{base_url}:{port}/status", timeout=2)
+                    if response.status_code == 200:
+                        active_ports.append(port)
+                except:
+                    pass
+            
+            # Fetch node data with increased timeout
+            updated_nodes = {}
+            for port in active_ports:
+                try:
+                    # Get basic status
+                    status_response = requests.get(f"{base_url}:{port}/status", timeout=3)
+                    if status_response.status_code == 200:
+                        node_status = status_response.json()
+                        
+                        # Get Chord debug data
+                        debug_response = requests.get(f"{base_url}:{port}/chord/debug", timeout=3)
+                        if debug_response.status_code == 200:
+                            chord_data = debug_response.json()
+                            
+                            # Combine data
+                            node_id = f"{node_status['ip']}:{node_status['port']}"
+                            updated_nodes[node_id] = {
+                                "ip": node_status['ip'],
+                                "port": node_status['port'],
+                                "chord_id": node_status.get('chord_id', 0),
+                                "chord_id_short": node_status.get('chord_id_short', 0),
+                                "promised_capacity": node_status['promised_capacity'],
+                                "current_load": node_status['current_load'],
+                                "finger_table": chord_data.get('finger_table_sample', []),
+                                "successor": chord_data.get('successor', {}),
+                                "predecessor": chord_data.get('predecessor', {}),
+                                "known_peers": list(chord_data.get('known_peers', {}).values())
+                            }
+                except:
+                    pass
+            
+            # Update global data
+            if updated_nodes:
+                nodes_data = updated_nodes
+                
+                # Calculate positions on the ring for visualization
+                chord_ring = []
+                max_id = 2**160
+                for node_id, node in nodes_data.items():
+                    # Calculate position on a circle
+                    angle = (node['chord_id'] / max_id) * 2 * math.pi
+                    x = 250 + 200 * math.cos(angle)
+                    y = 250 + 200 * math.sin(angle)
+                    
+                    # Add connections based on successor and finger table
+                    connections = []
+                    
+                    # Add successor connection
+                    if node.get('successor') and 'chord_id' in node['successor']:
+                        succ_id = node['successor']['chord_id']
+                        succ_angle = (succ_id / max_id) * 2 * math.pi
+                        succ_x = 250 + 200 * math.cos(succ_angle)
+                        succ_y = 250 + 200 * math.sin(succ_angle)
+                        
+                        connections.append({
+                            'x': succ_x,
+                            'y': succ_y,
+                            'type': 'successor',
+                            'target_id': f"{node['successor']['ip']}:{node['successor']['port']}"
+                        })
+                    
+                    chord_ring.append({
+                        'id': node_id,
+                        'port': node['port'],
+                        'chord_id': node['chord_id'],
+                        'chord_id_short': node['chord_id'] % 10000,
+                        'x': x,
+                        'y': y,
+                        'connections': connections
+                    })
+                
+                chord_ring_data = chord_ring
+                last_update = time.time()
+        except:
+            pass
+            
+        time.sleep(5)  # Update every 5 seconds</code></pre>
+                </div>
+                
+                <h3>Deployment and Testing</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Running the Network</div>
+                            <div class="card-body">
+                                <p>To start a Chord network, you need:</p>
+                                <ol>
+                                    <li>First, launch a bootstrap node:
+                                    <pre><code>python edge_server/main.py --ip 10.1.3.199 \
+    --port 5001 --promised_capacity 1000</code></pre>
+                                    </li>
+                                    <li>Then launch additional nodes pointing to the bootstrap:
+                                    <pre><code>python edge_server/main.py --ip 10.1.3.199 \
+    --port 5002 --promised_capacity 800 \
+    --bootstrap http://10.1.3.199:5001</code></pre>
+                                    </li>
+                                    <li>Launch the visualization server:
+                                    <pre><code>python edge_server/visualizer.py</code></pre>
+                                    </li>
+                                    <li>Optionally, launch an ESP client simulator:
+                                    <pre><code>python esp_simulator/esp_simulator.py \
+    --bootstrap http://10.1.3.199:5001 \
+    --interval 5</code></pre>
+                                    </li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Script for Multiple Nodes</div>
+                            <div class="card-body">
+                                <p>For convenience, we provide a script to launch multiple nodes at once:</p>
+                                <pre><code>python run_all_servers.py</code></pre>
+                                <p>This script will:</p>
+                                <ul>
+                                    <li>Start a bootstrap node</li>
+                                    <li>Launch 15+ additional nodes</li>
+                                    <li>Start the visualization server</li>
+                                    <li>Configure appropriate resources and ports</li>
+                                    <li>Shut down all nodes gracefully on Ctrl+C</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h2 class="mt-5">Conclusion</h2>
+        <div class="alert alert-success">
+            <p>This project demonstrates a complete implementation of a decentralized edge server network using the Chord DHT protocol. Key achievements include:</p>
+            <ul>
+                <li>Secure node authentication using public-key cryptography</li>
+                <li>Efficient O(log N) lookups using Chord finger tables</li>
+                <li>Decentralized load balancing for edge server requests</li>
+                <li>Self-organizing network with automated stabilization</li>
+                <li>Interactive visualization for monitoring and debugging</li>
+                <li>Modular architecture allowing for easier development and maintenance</li>
+            </ul>
+            <p>The system provides a robust foundation for edge computing applications, enabling efficient resource discovery and load distribution in a decentralized environment.</p>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
