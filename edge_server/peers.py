@@ -1,126 +1,139 @@
+import hashlib
 import threading
 import random
 import time
 import requests
 from flask import request, jsonify
-from Crypto.PublicKey import ECC
-from Crypto.Signature import DSS
-from Crypto.Hash import SHA256
 
-known_peers = {}
-node_info = {}
-key_pair = None
+FINGER_TABLE_SIZE = 5  # Use 5-bit space for testing (can increase for larger networks)
+
+known_peers = {}  # Stores all nodes in the network
+node_info = {}  # Stores this node's details
+finger_table = []  # Chord finger table
+
+
+### 1️⃣ UTILITY FUNCTIONS ###
+
+def hash_node(ip, port):
+    """ Generate a unique identifier for a node using SHA-1 hashing """
+    node_id = hashlib.sha1(f"{ip}:{port}".encode()).hexdigest()
+    return int(node_id, 16) % (2 ** FINGER_TABLE_SIZE)  # Limit to 2^m space
+
+
+### 2️⃣ INITIALIZATION & JOINING NETWORK ###
 
 def initialize_node(args):
-    global key_pair
-    key_pair = ECC.generate(curve='P-256')
+    """ Initialize this node and join the network if bootstrap is provided """
+    global node_info, finger_table
     node_info.update({
         "ip": args.ip,
         "port": args.port,
+        "id": hash_node(args.ip, args.port),
         "promised_capacity": args.promised_capacity,
         "current_load": 0
     })
-    self_id = f"{node_info['ip']}:{node_info['port']}"
-    known_peers[self_id] = node_info.copy()
+
+    known_peers[node_info['id']] = node_info.copy()
+    print(f"Node initialized: {node_info}")
+
+    # Initialize finger table
+    finger_table = [None] * FINGER_TABLE_SIZE
+    update_finger_table()
 
     if args.bootstrap:
         join_network(args.bootstrap)
-    start_auto_discovery()
     
+    # Start stabilization process
+    threading.Thread(target=stabilize, daemon=True).start()
+
 
 def join_network(bootstrap_url):
-    payload = {
-        "ip": node_info["ip"],
-        "port": node_info["port"],
-        "promised_capacity": node_info["promised_capacity"],
-        "public_key": key_pair.public_key().export_key(format='PEM')
-    }
+    """ Join an existing Chord network using a bootstrap node """
     try:
-        response = requests.post(f"{bootstrap_url}/register", json=payload, timeout=5)
+        response = requests.post(f"{bootstrap_url}/register", json=node_info, timeout=5)
         if response.status_code == 200:
-            challenge = response.json().get('challenge')
-            h = SHA256.new(challenge.encode('utf-8'))
-            signer = DSS.new(key_pair, 'fips-186-3')
-            signature = signer.sign(h)
-            auth_payload = {
-                "ip": node_info["ip"],
-                "port": node_info["port"],
-                "promised_capacity": node_info["promised_capacity"],
-                "signature": signature.hex()
-            }
-            requests.post(f"{bootstrap_url}/authenticate", json=auth_payload)
-            print(f"[SYNC] Joined network via {bootstrap_url}")
+            print(f"[JOIN] Joined network via {bootstrap_url}")
             fetch_peer_table(bootstrap_url)
-            gossip_new_peer(bootstrap_url)
+            update_finger_table()
     except Exception as e:
-        print(f"[ERROR] Could not join network: {e}")
+        print(f"[ERROR] Failed to join network: {e}")
+
 
 def fetch_peer_table(peer_url):
+    """ Fetch the peer table from another node """
     try:
         response = requests.get(f"{peer_url}/peer", timeout=5)
         if response.status_code == 200:
             for peer in response.json().get("peers", []):
-                peer_id = f"{peer['ip']}:{peer['port']}"
-                if peer_id != f"{node_info['ip']}:{node_info['port']}":
-                    known_peers[peer_id] = peer
-            print_peer_table()
+                known_peers[peer['id']] = peer
     except:
         pass
 
-def gossip_new_peer(peer_url):
-    for peer_id, peer in known_peers.items():
+
+### 3️⃣ CHORD LOOKUP FUNCTIONS ###
+
+def update_finger_table():
+    """ Populate the finger table with successors at distances of 2^i """
+    global finger_table
+    for i in range(FINGER_TABLE_SIZE):
+        finger_id = (node_info["id"] + (2 ** i)) % (2 ** FINGER_TABLE_SIZE)
+        finger_table[i] = find_successor(finger_id)
+    print("\nUpdated Finger Table:", finger_table)
+
+
+def find_successor(key):
+    """ Find the successor node responsible for the given key """
+    successor = get_successor()
+    if node_info["id"] < key <= successor["id"]:
+        return successor
+
+    closest = closest_preceding_node(key)
+    if closest:
         try:
-            requests.post(f"http://{peer['ip']}:{peer['port']}/update_peer", json=node_info, timeout=3)
+            response = requests.get(f"http://{closest['ip']}:{closest['port']}/find_successor?key={key}")
+            return response.json()
         except:
             pass
 
-def start_auto_discovery():
-    def discover_peers():
-        while True:
-            if known_peers:
-                peer = random.choice(list(known_peers.values()))
-                fetch_peer_table(f"http://{peer['ip']}:{peer['port']}")
-                health_check()
-            time.sleep(random.randint(1, 5))
-
-    threading.Thread(target=discover_peers, daemon=True).start()
+    return node_info  # Fallback if no valid lookup
 
 
-def health_check():
-    dead_peers = []
-    for peer_id, peer in known_peers.items():
+def closest_preceding_node(key):
+    """ Find the closest finger preceding the given key """
+    for i in range(FINGER_TABLE_SIZE - 1, -1, -1):
+        if finger_table[i] and node_info["id"] < finger_table[i]["id"] < key:
+            return finger_table[i]
+    return None
+
+
+def get_successor():
+    """ Get the immediate successor of this node """
+    return finger_table[0] if finger_table[0] else node_info
+
+
+### 4️⃣ STABILIZATION ###
+
+def stabilize():
+    """ Periodically update the finger table to maintain correctness """
+    while True:
         try:
-            requests.get(f"http://{peer['ip']}:{peer['port']}/peer", timeout=3)
+            update_finger_table()
         except:
-            dead_peers.append(peer_id)
-    for dead in dead_peers:
-        print(f"[HEALTH] Removing dead peer {dead}")
-        known_peers.pop(dead, None)
+            pass
+        time.sleep(10)  # Update every 10 seconds
 
 
-def print_peer_table():
-    print("\n========== UPDATED PEER TABLE ==========")
-    print("| IP                  | Port | Load | Capacity |")
-    print("-----------------------------------------")
-    for peer_id, peer in known_peers.items():
-        print(f"| {peer['ip']:<18} | {peer['port']:<4} | {peer.get('current_load', 0):<4} | {peer.get('promised_capacity', 0):<8} |")
-    print("-----------------------------------------\n")
-
+### 5️⃣ FLASK API ROUTES ###
 
 def register_routes(app):
     @app.route('/peer', methods=['GET'])
     def get_peers():
-        peer_list = []
-        for peer_id, peer in known_peers.items():
-            peer_copy = dict(peer)
-            peer_copy.pop("key_pair", None)
-            peer_list.append(peer_copy)
-        return jsonify({"peers": peer_list})
+        """ Return the list of known peers """
+        return jsonify({"peers": list(known_peers.values())})
 
-    @app.route('/update_peer', methods=['POST'])
-    def update_peer():
-        data = request.json
-        peer_id = f"{data['ip']}:{data['port']}"
-        known_peers[peer_id] = data
-        print(f"[GOSSIP] Peer table updated with {data['ip']}:{data['port']}")
-        return {"status": "peer updated"}
+    @app.route('/find_successor', methods=['GET'])
+    def api_find_successor():
+        """ API endpoint for finding the successor of a given key """
+        key = int(request.args.get("key"))
+        successor = find_successor(key)
+        return jsonify(successor)
