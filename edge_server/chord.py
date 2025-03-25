@@ -52,14 +52,9 @@ def initialize_finger_table():
     for i in range(CHORD_BITS):
         # Start of finger i is (n + 2^i) mod 2^m
         start = (node_id + (2 ** i)) % CHORD_SIZE
-        
-        # Important: Initially set each finger to point to our successor, not ourselves
-        # This ensures we don't get stuck with self-references
-        finger_node = successor if successor and successor["chord_id"] != node_info["chord_id"] else None
-        
         finger_table.append({
             "start": start, 
-            "node": finger_node
+            "node": None  # Initially set to None, will be populated by fix_fingers
         })
     
     # Schedule immediate finger table fixing
@@ -69,26 +64,23 @@ def fix_all_fingers():
     """Fix all fingers at once when joining the network"""
     time.sleep(2)  # Give the system a moment to stabilize
     
-    for i in range(min(20, CHORD_BITS)):  # Fix at least the first 20 fingers
+    # Fix at least the first 20 fingers for initial setup
+    for i in range(min(20, CHORD_BITS)):
         try:
-            fix_finger(i)
+            # Fix each finger with its proper successor
+            finger_id = finger_table[i]["start"]
+            successor_node = find_successor(finger_id)
+            
+            # Only update if we found a valid successor
+            if successor_node and "chord_id" in successor_node:
+                # Make sure we're not pointing to ourselves unless necessary
+                if successor_node["chord_id"] != node_info["chord_id"] or i == 0:
+                    finger_table[i]["node"] = successor_node
+                    print(f"[CHORD] Initialized finger {i} to point to {successor_node['ip']}:{successor_node['port']} (ID: {successor_node['chord_id'] % 10000})")
+            
             time.sleep(0.2)  # Small delay between fixes
         except Exception as e:
             print(f"[CHORD] Error fixing finger {i}: {e}")
-
-def fix_finger(i):
-    """Fix a specific finger table entry"""
-    finger_id = finger_table[i]["start"]
-    
-    # Don't set fingers to point to ourselves - find a different node
-    successor_node = find_successor(finger_id)
-    
-    if successor_node and successor_node.get("chord_id") != node_info["chord_id"]:
-        finger_table[i]["node"] = successor_node
-        print(f"[CHORD] Updated finger {i} to point to {successor_node['ip']}:{successor_node['port']} (ID: {successor_node['chord_id'] % 10000})")
-        return True
-    
-    return False
 
 def find_successor(id):
     """Find the successor node for a given ID"""
@@ -127,7 +119,7 @@ def closest_preceding_node(id):
     # Check finger table from largest to smallest distance
     for i in range(CHORD_BITS - 1, -1, -1):
         finger_node = finger_table[i]["node"]
-        if finger_node and is_between(node_id, finger_node["chord_id"], id):
+        if finger_node and "chord_id" in finger_node and is_between(node_id, finger_node["chord_id"], id):
             return finger_node
     
     return node_info
@@ -159,7 +151,7 @@ def join_chord(bootstrap_node):
             if "chord_id" not in successor_data:
                 successor_data["chord_id"] = get_chord_id(successor_data["ip"], successor_data["port"])
                 
-            # Don't set ourselves as our own successor
+            # Avoid setting ourselves as our own successor if possible
             if successor_data["chord_id"] == node_id:
                 # Try getting the bootstrap node's successor instead
                 try:
@@ -168,7 +160,13 @@ def join_chord(bootstrap_node):
                     if resp.status_code == 200 and resp.json():
                         successor_data = resp.json()
                 except:
-                    pass
+                    # If bootstrap is also pointing to itself, try another random peer
+                    for peer_id, peer in known_peers.items():
+                        if peer_id != f"{node_info['ip']}:{node_info['port']}" and peer_id != f"{successor_data['ip']}:{successor_data['port']}":
+                            if "chord_id" not in peer:
+                                peer["chord_id"] = get_chord_id(peer["ip"], peer["port"])
+                            successor_data = peer
+                            break
             
             successor = successor_data
             print(f"[CHORD] Joined ring with successor: {successor['ip']}:{successor['port']} (ID: {successor['chord_id'] % 10000})")
@@ -176,16 +174,11 @@ def join_chord(bootstrap_node):
             # Notify our successor that we might be its predecessor
             notify_successor()
             
-            # After setting successor, get the finger table of our successor
-            try:
-                url = f"http://{successor['ip']}:{successor['port']}/chord/finger_table"
-                finger_resp = requests.get(url, timeout=5)
-                if finger_resp.status_code == 200:
-                    print("[CHORD] Retrieved finger table from successor to bootstrap our routing")
-            except:
-                print("[CHORD] Could not retrieve finger table from successor")
+            # Initialize first finger to point to our successor
+            if len(finger_table) > 0:
+                finger_table[0]["node"] = successor
             
-            # Schedule immediate finger table fixing
+            # Schedule immediate finger table fixing for the rest of the entries
             threading.Thread(target=fix_all_fingers, daemon=True).start()
             
             return True
@@ -246,6 +239,10 @@ def stabilize():
                 if is_between(node_info["chord_id"], peer["chord_id"], successor["chord_id"]) or successor["chord_id"] == node_info["chord_id"]:
                     successor = peer
                     print(f"[CHORD] Found better successor: {successor['ip']}:{successor['port']}")
+                    
+                    # Update first finger to point to our successor
+                    if len(finger_table) > 0:
+                        finger_table[0]["node"] = successor
         return
     
     try:
@@ -264,6 +261,10 @@ def stabilize():
             if is_between(node_info["chord_id"], x["chord_id"], successor["chord_id"]):
                 successor = x
                 print(f"[CHORD] Updated successor to {successor['ip']}:{successor['port']}")
+                
+                # Update first finger to point to our successor
+                if len(finger_table) > 0:
+                    finger_table[0]["node"] = successor
         
         # Notify our successor that we might be its predecessor
         notify_successor()
@@ -282,16 +283,31 @@ def stabilize():
         if backup_successor:
             successor = backup_successor
             print(f"[CHORD] Successor failed, updating to: {successor['ip']}:{successor['port']}")
+            
+            # Update first finger to point to our successor
+            if len(finger_table) > 0:
+                finger_table[0]["node"] = successor
 
 def fix_fingers():
-    """Periodically fix finger table entries"""
-    # Choose a random finger to fix
-    i = random.randint(0, CHORD_BITS - 1)
+    """Periodically fix a random finger table entry"""
+    # Choose a finger to fix (bias toward fixing earlier fingers more often)
+    i = int(random.random() * random.random() * CHORD_BITS)
     
     try:
-        # Only log successful updates
-        if fix_finger(i):
-            print(f"[CHORD] Fixed finger {i}, now points to {finger_table[i]['node']['ip']}:{finger_table[i]['node']['port']}")
+        # Calculate the proper start position for this finger
+        finger_id = finger_table[i]["start"]
+        
+        # Find the correct successor for this position
+        successor_node = find_successor(finger_id)
+        
+        # Check if we found a valid successor that's different from the current one
+        if successor_node and "chord_id" in successor_node:
+            current = finger_table[i]["node"]
+            
+            # Only update if it's different from current value
+            if not current or current["chord_id"] != successor_node["chord_id"]:
+                finger_table[i]["node"] = successor_node
+                print(f"[CHORD] Updated finger {i} (start={finger_id % 10000}) to point to {successor_node['ip']}:{successor_node['port']} (ID: {successor_node['chord_id'] % 10000})")
     except Exception as e:
         print(f"[CHORD] Error fixing finger {i}: {e}")
 

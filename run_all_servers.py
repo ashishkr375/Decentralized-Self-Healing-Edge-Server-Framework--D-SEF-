@@ -7,7 +7,7 @@ import os
 # Configuration
 IP = "10.1.3.199"
 BOOTSTRAP_PORT = 5000
-PORTS = list(range(5000, 5035))  # From 5000 to 5034
+PORTS = list(range(5000, 5018))  # From 5000 to 5034
 BOOTSTRAP_URL = f"http://{IP}:{BOOTSTRAP_PORT}"
 
 # Store all processes

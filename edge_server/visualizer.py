@@ -391,22 +391,33 @@ if __name__ == '__main__':
         
         // Calculate chord distance between two IDs
         function chordDistance(from, to) {
-            const max = BigInt('0x' + 'f'.repeat(40));  // 2^160 - 1
-            const fromBig = BigInt(from);
-            const toBig = BigInt(to);
-            
-            if (toBig >= fromBig) {
-                return Number((toBig - fromBig) % max);
-            } else {
-                return Number((max - fromBig + toBig + BigInt(1)) % max);
+            // Use BigInt to properly handle the large numbers in chord IDs
+            try {
+                const fromBig = BigInt(from);
+                const toBig = BigInt(to);
+                const max = BigInt("0x" + "f".repeat(40));  // 2^160 - 1
+                
+                if (toBig >= fromBig) {
+                    return Number((toBig - fromBig));
+                } else {
+                    return Number((max - fromBig + toBig + BigInt(1)));
+                }
+            } catch (e) {
+                console.error("Error calculating distance:", e);
+                return "N/A";
             }
         }
         
-        // Format large numbers
+        // Format large numbers for display
         function formatNumber(num) {
-            if (num === undefined || num === null) return 'N/A';
+            if (num === undefined || num === null || num === "N/A") return 'N/A';
             
-            if (num > 1000000) {
+            // Format as readable number with K, M suffixes
+            if (num > 1000000000000) {
+                return (num / 1000000000000).toFixed(2) + 'T';
+            } else if (num > 1000000000) {
+                return (num / 1000000000).toFixed(2) + 'B';
+            } else if (num > 1000000) {
                 return (num / 1000000).toFixed(2) + 'M';
             } else if (num > 1000) {
                 return (num / 1000).toFixed(2) + 'K';
