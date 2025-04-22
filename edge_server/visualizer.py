@@ -462,14 +462,19 @@ if __name__ == '__main__':
             
             <div id="task-history-panel" class="mt-4">
                 <h4>Task/Computation History</h4>
-                <table class="table table-sm table-striped">
+                <table class="table table- table-striped">
                     <thead>
                         <tr>
+                        
                             <th>Timestamp</th>
-                            <th>Event Type</th>
                             <th>Task ID</th>
-                            <th>Node</th>
-                            <th>Details</th>
+                            <th>Node ID</th>
+                            <th>Processing Load</th>
+                            <th>Task Type</th>
+                          
+                            <th>Earned</th>
+                            
+                            
                         </tr>
                     </thead>
                     <tbody id="task-history-table">
@@ -746,15 +751,19 @@ if __name__ == '__main__':
                 .then(data => {
                     const table = document.getElementById('task-history-table');
                     table.innerHTML = '';
-                    if (data.logs && data.logs.length > 0) {
-                        data.logs.reverse().forEach(log => {
+                    if (data.rows && data.rows.length > 0) {
+                        data.rows.reverse().forEach(log => {
                             const row = document.createElement('tr');
                             row.innerHTML = `
-                                <td>${log.timestamp_utc || ''}</td>
-                                <td>${log.event_type || ''}</td>
-                                <td>${log.task_id || ''}</td>
+                            
+                              <td>${log.timestamp || ''}</td>
+                                <td>${log.task_id|| ''}</td>
                                 <td>${log.node_id || ''}</td>
-                                <td>${JSON.stringify(log.details || {})}</td>
+                                <td>${log.processing_load || ''}</td>
+                                <td>${ log.task_type|| ''}</td>
+                                
+                                <td>${ log.earned|| ''}</td>
+                               
                             `;
                             table.appendChild(row);
                         });

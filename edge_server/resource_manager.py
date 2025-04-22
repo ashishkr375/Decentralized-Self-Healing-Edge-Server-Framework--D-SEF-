@@ -10,6 +10,8 @@ latest_stats = {}
 STATS_UPDATE_INTERVAL = 60  # seconds
 
 
+
+
 def get_current_system_stats(partition=None):
     """
     Returns a JSON-serializable dictionary of current system stats.
