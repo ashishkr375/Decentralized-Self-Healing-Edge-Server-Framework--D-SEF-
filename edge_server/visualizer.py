@@ -1,10 +1,11 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, send_file, request
 import requests
 import json
 import time
 import threading
 import os
 import math
+import csv
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -18,88 +19,88 @@ os.makedirs('edge_server/templates', exist_ok=True)
 os.makedirs('edge_server/static', exist_ok=True)
 
 def update_node_data():
-    """Periodically fetch data from all nodes"""
+    """Periodically fetch data from all nodes using /peer logic and include resource stats"""
     global nodes_data, chord_ring_data, last_update
+    import requests
+    import time
+    import math
     
+    # List of bootstrap nodes (can be extended)
+    bootstrap_nodes = ["10.1.7.132:5000"]
+
     while True:
         try:
-            # Scan ports to find active nodes
-            active_ports = []
-            base_url = "http://10.1.3.199"
-            
-            # Scan more ports - increase range to include all your servers
-            for port in range(5000, 5035):  # Scan from 5000 to 5034
+            discovered_nodes = set()
+            for bootstrap in bootstrap_nodes:
                 try:
-                    response = requests.get(f"{base_url}:{port}/status", timeout=1)
-                    if response.status_code == 200:
-                        active_ports.append(port)
-                        print(f"Found active node at port {port}")
-                except Exception as e:
-                    pass
-            
-            print(f"Found {len(active_ports)} active nodes")
-            
-            # Fetch node data with increased timeout
+                    resp = requests.get(f"http://{bootstrap}/peer", timeout=2)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        for peer in data.get('peers', []):
+                            discovered_nodes.add(f"{peer['ip']}:{peer['port']}")
+                except Exception:
+                    continue
+            # Always include bootstrap nodes themselves
+            discovered_nodes.update(bootstrap_nodes)
+
+            # Now fetch /status, /chord/debug, and /peer for each unique node
             updated_nodes = {}
-            for port in active_ports:
+            for node_addr in discovered_nodes:
+                ip, port = node_addr.split(":")
                 try:
-                    # Get basic status
-                    status_response = requests.get(f"{base_url}:{port}/status", timeout=3)
-                    if status_response.status_code == 200:
-                        node_status = status_response.json()
-                        
-                        # Get Chord debug data
-                        debug_response = requests.get(f"{base_url}:{port}/chord/debug", timeout=3)
-                        if debug_response.status_code == 200:
-                            chord_data = debug_response.json()
-                            
-                            # Combine data
-                            node_id = f"{node_status['ip']}:{node_status['port']}"
-                            updated_nodes[node_id] = {
-                                "ip": node_status['ip'],
-                                "port": node_status['port'],
-                                "chord_id": node_status.get('chord_id', 0),
-                                "chord_id_short": node_status.get('chord_id_short', 0),
-                                "promised_capacity": node_status['promised_capacity'],
-                                "current_load": node_status['current_load'],
-                                "finger_table": chord_data.get('finger_table_sample', []),
-                                "successor": chord_data.get('successor', {}),
-                                "predecessor": chord_data.get('predecessor', {}),
-                                "known_peers": list(chord_data.get('known_peers', {}).values())
-                            }
+                    status_resp = requests.get(f"http://{ip}:{port}/status", timeout=2)
+                    if status_resp.status_code == 200:
+                        node_status = status_resp.json()
+                        debug_resp = requests.get(f"http://{ip}:{port}/chord/debug", timeout=2)
+                        chord_data = debug_resp.json() if debug_resp.status_code == 200 else {}
+                        # Fetch /peer to get resource_stats
+                        peer_resp = requests.get(f"http://{ip}:{port}/peer", timeout=2)
+                        resource_stats = None
+                        if peer_resp.status_code == 200:
+                            peer_data = peer_resp.json()
+                            # Find this node's own entry in the peers list
+                            for peer in peer_data.get('peers', []):
+                                if peer['ip'] == node_status['ip'] and str(peer['port']) == str(node_status['port']):
+                                    resource_stats = peer.get('resource_stats', None)
+                                    break
+                        node_id = f"{node_status['ip']}:{node_status['port']}"
+                        updated_nodes[node_id] = {
+                            "ip": node_status['ip'],
+                            "port": node_status['port'],
+                            "chord_id": node_status.get('chord_id', 0),
+                            "chord_id_short": node_status.get('chord_id_short', 0),
+                            "promised_capacity": node_status['promised_capacity'],
+                            "current_load": node_status['current_load'],
+                            "finger_table": chord_data.get('finger_table_sample', []),
+                            "successor": chord_data.get('successor', {}),
+                            "predecessor": chord_data.get('predecessor', {}),
+                            "known_peers": list(chord_data.get('known_peers', {}).values()),
+                            "resource_stats": resource_stats
+                        }
                 except Exception as e:
-                    print(f"Error fetching data from port {port}: {str(e)}")
-            
+                    print(f"Error fetching data from {node_addr}: {str(e)}")
             # Update global data
             if updated_nodes:
                 nodes_data = updated_nodes
-                
                 # Calculate positions on the ring for visualization
                 chord_ring = []
                 max_id = 2**160
                 for node_id, node in nodes_data.items():
-                    # Calculate position on a circle
                     angle = (node['chord_id'] / max_id) * 2 * math.pi
                     x = 250 + 200 * math.cos(angle)
                     y = 250 + 200 * math.sin(angle)
-                    
-                    # Add connections based on successor and finger table
                     connections = []
-                    
-                    # Add successor connection
                     if node.get('successor') and 'chord_id' in node['successor']:
                         succ_id = node['successor']['chord_id']
                         succ_angle = (succ_id / max_id) * 2 * math.pi
                         succ_x = 250 + 200 * math.cos(succ_angle)
                         succ_y = 250 + 200 * math.sin(succ_angle)
-                        
                         connections.append({
                             'x': succ_x,
                             'y': succ_y,
                             'type': 'successor',
                             'target_id': f"{node['successor']['ip']}:{node['successor']['port']}"
                         })
-                    
                     chord_ring.append({
                         'id': node_id,
                         'port': node['port'],
@@ -109,12 +110,10 @@ def update_node_data():
                         'y': y,
                         'connections': connections
                     })
-                
                 chord_ring_data = chord_ring
                 last_update = time.time()
                 print(f"Updated data for {len(chord_ring)} nodes")
-                
-            time.sleep(10)  # Update every 10 seconds (increased to reduce load)
+            time.sleep(10)
         except Exception as e:
             print(f"Error in update thread: {str(e)}")
             time.sleep(2)
@@ -140,6 +139,76 @@ def get_node(port):
         if str(node['port']) == port:
             return jsonify(node)
     return jsonify({'error': 'Node not found'}), 404
+
+@app.route('/esp_results')
+def esp_results_api():
+    # Serve CSV as JSON for frontend
+    results_file = os.environ.get('ESP_RESULTS_FILE', 'esp_sim_results.csv')
+    rows = []
+    try:
+        with open(results_file, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                rows.append(row)
+    except Exception as e:
+        return jsonify({'error': str(e), 'rows': []})
+    return jsonify(rows)
+
+@app.route('/esp_results_view')
+def esp_results_view():
+    return render_template('esp_results.html')
+
+@app.route('/api/task_history')
+def get_task_history():
+    """Return grouped ESP task logs for visualization."""
+    # Read logs from the log file
+    log_file = os.path.join(os.path.dirname(__file__), 'task_accounting.log')
+    logs = []
+    if os.path.exists(log_file):
+        with open(log_file, 'r') as f:
+            for line in f:
+                try:
+                    logs.append(json.loads(line))
+                except Exception:
+                    continue
+    # Group by task_id
+    grouped = {}
+    for log in logs:
+        tid = log.get('task_id')
+        if tid not in grouped:
+            grouped[tid] = {}
+        grouped[tid][log['event_type']] = log
+    # Prepare rows: only for tasks that have both RECEIVED and COMPLETED
+    rows = []
+    total_load = 0
+    total_earned = 0
+    for tid, events in grouped.items():
+        received = events.get('ESP_REQUEST_RECEIVED')
+        completed = events.get('ESP_REQUEST_COMPLETED')
+        if received and completed:
+            details_in = received.get('details', {})
+            details_out = completed.get('details', {})
+            row = {
+                'timestamp': received.get('timestamp_utc'),
+                'task_id': tid,
+                'node_id': received.get('node_id'),
+                'processing_load': details_in.get('processing_load'),
+                'task_type': details_in.get('task_type'),
+                'result': details_out.get('result'),
+                'earned': details_out.get('earned'),
+                'total_capacity': None  # To be filled in below
+            }
+            total_load += details_in.get('processing_load', 0) or 0
+            total_earned += details_out.get('earned', 0) or 0
+            rows.append(row)
+    # Try to get node capacity from nodes_data
+    for row in rows:
+        node = nodes_data.get(row['node_id'])
+        if node:
+            row['total_capacity'] = node.get('promised_capacity')
+        else:
+            row['total_capacity'] = 'N/A'
+    return jsonify({'rows': rows, 'total_load': total_load, 'total_earned': total_earned})
 
 if __name__ == '__main__':
     # Write HTML template
@@ -371,7 +440,42 @@ if __name__ == '__main__':
                             </table>
                         </div>
                     </div>
+                    
+                    <div class="card">
+                        <div class="card-header">Resource Stats</div>
+                        <div class="card-body">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Resource</th>
+                                        <th>Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resource-stats">
+                                    <!-- Resource stats entries -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
+            </div>
+            
+            <div id="task-history-panel" class="mt-4">
+                <h4>Task/Computation History</h4>
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Event Type</th>
+                            <th>Task ID</th>
+                            <th>Node</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="task-history-table">
+                        <!-- Task history entries -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -615,11 +719,62 @@ if __name__ == '__main__':
                 row.innerHTML = '<td colspan="4">No known peers</td>';
                 knownPeersElem.appendChild(row);
             }
+            
+            // Update resource stats
+            const resourceStatsElem = document.getElementById('resource-stats');
+            resourceStatsElem.innerHTML = '';
+            if (node.resource_stats) {
+                Object.keys(node.resource_stats).forEach(key => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${key}</td>
+                        <td>${formatNumber(node.resource_stats[key])}</td>
+                    `;
+                    resourceStatsElem.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="2">No resource stats available</td>';
+                resourceStatsElem.appendChild(row);
+            }
+        }
+        
+        // Update task history
+        function updateTaskHistory() {
+            fetch('/api/task_history')
+                .then(response => response.json())
+                .then(data => {
+                    const table = document.getElementById('task-history-table');
+                    table.innerHTML = '';
+                    if (data.logs && data.logs.length > 0) {
+                        data.logs.reverse().forEach(log => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${log.timestamp_utc || ''}</td>
+                                <td>${log.event_type || ''}</td>
+                                <td>${log.task_id || ''}</td>
+                                <td>${log.node_id || ''}</td>
+                                <td>${JSON.stringify(log.details || {})}</td>
+                            `;
+                            table.appendChild(row);
+                        });
+                    } else {
+                        const row = document.createElement('tr');
+                        row.innerHTML = '<td colspan="5">No task history available</td>';
+                        table.appendChild(row);
+                    }
+                })
+                .catch(error => {
+                    const table = document.getElementById('task-history-table');
+                    table.innerHTML = `<tr><td colspan="5">Error loading task history: ${error}</td></tr>`;
+                });
         }
         
         // Initialize and set periodic updates
         updateVisualization();
         setInterval(updateVisualization, 10000);
+        updateTaskHistory();
+        setInterval(updateTaskHistory, 10000);
         
         // Add manual refresh button handler
         document.getElementById('refresh-btn').addEventListener('click', updateVisualization);
@@ -627,5 +782,5 @@ if __name__ == '__main__':
 </body>
 </html>""")
 
-    print("Visualization server is running at http://10.1.3.199:8080")
+    print("Visualization server is running at ")
     app.run(host="0.0.0.0", port=8080, debug=True) 

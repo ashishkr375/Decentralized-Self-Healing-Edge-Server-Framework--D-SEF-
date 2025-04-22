@@ -1,0 +1,11 @@
+flask
+requests
+pycryptodome
+psutil
+docker
+flask-limiter
+pyinstaller
+pyinstaller-hooks-contrib
+pywin32
+pywin32-ctypes
+

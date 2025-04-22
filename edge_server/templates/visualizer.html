@@ -225,7 +225,42 @@
                             </table>
                         </div>
                     </div>
+                    
+                    <div class="card">
+                        <div class="card-header">Resource Stats</div>
+                        <div class="card-body">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Resource</th>
+                                        <th>Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="resource-stats">
+                                    <!-- Resource stats entries -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
+            </div>
+            
+            <div id="task-history-panel" class="mt-4">
+                <h4>Task/Computation History</h4>
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Event Type</th>
+                            <th>Task ID</th>
+                            <th>Node</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="task-history-table">
+                        <!-- Task history entries -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -469,11 +504,62 @@
                 row.innerHTML = '<td colspan="4">No known peers</td>';
                 knownPeersElem.appendChild(row);
             }
+            
+            // Update resource stats
+            const resourceStatsElem = document.getElementById('resource-stats');
+            resourceStatsElem.innerHTML = '';
+            if (node.resource_stats) {
+                Object.keys(node.resource_stats).forEach(key => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${key}</td>
+                        <td>${formatNumber(node.resource_stats[key])}</td>
+                    `;
+                    resourceStatsElem.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="2">No resource stats available</td>';
+                resourceStatsElem.appendChild(row);
+            }
+        }
+        
+        // Update task history
+        function updateTaskHistory() {
+            fetch('/api/task_history')
+                .then(response => response.json())
+                .then(data => {
+                    const table = document.getElementById('task-history-table');
+                    table.innerHTML = '';
+                    if (data.logs && data.logs.length > 0) {
+                        data.logs.reverse().forEach(log => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${log.timestamp_utc || ''}</td>
+                                <td>${log.event_type || ''}</td>
+                                <td>${log.task_id || ''}</td>
+                                <td>${log.node_id || ''}</td>
+                                <td>${JSON.stringify(log.details || {})}</td>
+                            `;
+                            table.appendChild(row);
+                        });
+                    } else {
+                        const row = document.createElement('tr');
+                        row.innerHTML = '<td colspan="5">No task history available</td>';
+                        table.appendChild(row);
+                    }
+                })
+                .catch(error => {
+                    const table = document.getElementById('task-history-table');
+                    table.innerHTML = `<tr><td colspan="5">Error loading task history: ${error}</td></tr>`;
+                });
         }
         
         // Initialize and set periodic updates
         updateVisualization();
         setInterval(updateVisualization, 10000);
+        updateTaskHistory();
+        setInterval(updateTaskHistory, 10000);
         
         // Add manual refresh button handler
         document.getElementById('refresh-btn').addEventListener('click', updateVisualization);

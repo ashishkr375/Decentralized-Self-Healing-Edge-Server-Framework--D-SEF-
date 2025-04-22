@@ -7,7 +7,7 @@ import os
 # Configuration
 IP = "10.1.3.199"
 BOOTSTRAP_PORT = 5000
-PORTS = list(range(5000, 5018))  # From 5000 to 5034
+PORTS = list(range(5000, 5035))  # From 5000 to 5034
 BOOTSTRAP_URL = f"http://{IP}:{BOOTSTRAP_PORT}"
 
 # Store all processes
@@ -65,7 +65,28 @@ def start_visualizer():
     processes.append(process)
     return process
 
+def generate_ssl_certs():
+    """Generate self-signed SSL certs if not present (key.pem, cert.pem)."""
+    cert_path = os.path.join(os.path.dirname(__file__), 'cert.pem')
+    key_path = os.path.join(os.path.dirname(__file__), 'key.pem')
+    if not os.path.exists(cert_path) or not os.path.exists(key_path):
+        print("Generating self-signed SSL certificates for HTTPS...")
+        # Use openssl to generate certs (cross-platform)
+        cmd = [
+            'openssl', 'req', '-x509', '-newkey', 'rsa:4096',
+            '-keyout', key_path, '-out', cert_path, '-days', '365', '-nodes', '-subj', '/CN=localhost'
+        ]
+        try:
+            subprocess.run(cmd, check=True)
+            print("SSL certificates generated.")
+        except Exception as e:
+            print(f"[ERROR] Could not generate SSL certificates: {e}")
+            print("You must have openssl installed and in your PATH.")
+            sys.exit(1)
+
 def main():
+    # First, ensure SSL certs exist
+    generate_ssl_certs()
     # First, start the bootstrap node
     bootstrap_process = start_server(BOOTSTRAP_PORT, is_bootstrap=True)
     
