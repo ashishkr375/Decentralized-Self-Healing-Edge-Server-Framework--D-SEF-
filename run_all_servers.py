@@ -27,41 +27,37 @@ signal.signal(signal.SIGINT, signal_handler)
 def start_server(port, is_bootstrap=False):
     """Start a single edge server"""
     capacity = 450 + (port % 10) * 100  # Vary capacity between 450-1350
-    
+
+    # Use uv run python ... for proper env isolation
     cmd = [
-        "python", "edge_server/main.py",
+        sys.executable, "-m", "uv", "run", "python", "edge_server/main.py",
         "--ip", IP,
         "--port", str(port),
         "--promised_capacity", str(capacity)
     ]
-    
     if not is_bootstrap:
         cmd.extend(["--bootstrap", BOOTSTRAP_URL])
-    
-    # Create a new process
+
     print(f"Starting{'bootstrap' if is_bootstrap else ''} server on port {port}...")
-    
-    # Use CREATE_NEW_CONSOLE on Windows to create a separate window for each server
     if sys.platform == 'win32':
         process = subprocess.Popen(cmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
     else:
-        # For Unix/Linux, redirect output to /dev/null
         with open(os.devnull, 'w') as devnull:
             process = subprocess.Popen(cmd, stdout=devnull, stderr=devnull)
-    
+
     processes.append(process)
     return process
 
 def start_visualizer():
     """Start the visualization server"""
-    cmd = ["python", "edge_server/visualizer.py"]
-    
+    cmd = [sys.executable, "-m", "uv", "run", "python", "edge_server/visualizer.py"]
+
     print("Starting visualization server on port 8080...")
     if sys.platform == 'win32':
         process = subprocess.Popen(cmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
     else:
         process = subprocess.Popen(cmd)
-    
+
     processes.append(process)
     return process
 
