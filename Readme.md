@@ -1,4 +1,3 @@
-
 # Decentralized Self-Healing Edge Server Framework (D-SEF)
 
 ## Overview
@@ -12,56 +11,94 @@ ESP Simulators act as IoT devices, sending random load packets to the network. E
 ```
 /edge_server/       -> Edge Server modules (main.py + modular files)
 /esp_simulator/     -> ESP Simulator
-/dashboard/         -> (Coming soon) Web dashboard for real-time stats
+/run_all_servers.py -> Helper script to launch multiple edge servers
+/pyinstaller.spec   -> (Optional) PyInstaller config for packaging
 ```
 
 ## 🔧 Requirements
-- Python 3.10+
-- Dependencies listed in `requirements.txt` inside each folder
+- Python 3.11+
+- Dependencies managed via [uv](https://github.com/astral-sh/uv)
+
+---
+
+## 🚀 Quickstart with uv
+
+### 1. Install uv (if not installed)
+```sh
+pip install uv
+```
+
+### 2. Install Project Dependencies
+```sh
+uv sync
+```
+
+### 3. Add a New Dependency (if needed)
+```sh
+uv add <package-name>
+uv sync
+```
+
+---
 
 ## 🟢 How to Run Edge Servers
 
-### Step 1: Navigate to the `edge_server` directory
-```bash
-cd edge_server
+### 1. Start the Bootstrap (First) Edge Server
+```sh
+uv run python edge_server/main.py --ip <BOOTSTRAP_IP> --port <BOOTSTRAP_PORT>
+```
+Example:
+```sh
+uv run python edge_server/main.py --ip 10.1.3.199 --port 5000
 ```
 
-### Step 2: Install dependencies
-```bash
-pip install -r requirements.txt
+### 2. Start Additional Edge Servers (Join Existing Network)
+```sh
+uv run python edge_server/main.py --ip <NEW_IP> --port <NEW_PORT> --bootstrap http://<BOOTSTRAP_IP>:<BOOTSTRAP_PORT>
+```
+Example:
+```sh
+uv run python edge_server/main.py --ip 10.1.3.199 --port 5001 --bootstrap http://10.1.3.199:5000
 ```
 
-### Step 3: Start the first edge server (bootstrap node)
-```bash
-python main.py --ip 10.1.3.199 --port 5000 --promised_capacity 1000
-```
-
-### Step 4: Start additional edge servers (joining existing node)
-```bash
-python main.py --ip 10.1.3.199 --port 5001 --promised_capacity 800 --bootstrap http://10.1.3.199:5000
-python main.py --ip YOUR_IP --port 5002 --promised_capacity 500 --bootstrap http://YOUR_IP:5000
+You can use the provided helper script to launch multiple servers:
+```sh
+uv run python run_all_servers.py
 ```
 
 ---
 
 ## 🔵 How to Run ESP Simulators
 
-### Step 1: Navigate to the `esp_simulator` directory
-```bash
-cd esp_simulator
+### 1. Start ESP Simulator
+```sh
+uv run python esp_simulator/esp_simulator.py --bootstrap http://<BOOTSTRAP_IP>:<BOOTSTRAP_PORT> --interval <SECONDS>
 ```
-
-### Step 2: Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### Step 3: Run ESP Simulator targeting your bootstrap node
-```bash
-python esp_simulator.py --bootstrap http://YOUR_IP:5000 --interval 5
+Example:
+```sh
+uv run python esp_simulator/esp_simulator.py --bootstrap http://10.1.3.199:5000 --interval 5
 ```
 
 ESP Simulator will automatically discover all active edge servers and redirect if one becomes unreachable.
+
+---
+
+## 📊 How to Start the Visualizer
+
+```sh
+uv run python edge_server/visualizer.py
+```
+
+---
+
+## ⚡ Packaging as Standalone Executable (Optional)
+- If you want to create a standalone executable, you can use PyInstaller.
+- The `pyinstaller.spec` file is provided for advanced packaging and custom data inclusion.
+- To build:
+```sh
+uv run pyinstaller pyinstaller.spec
+```
+- This step is optional if you only want to run via uv and Python.
 
 ---
 
@@ -72,6 +109,19 @@ ESP Simulator will automatically discover all active edge servers and redirect i
 - Self-healing network (dead node removal)
 - Load balancing based on capacity and load
 - ESP Simulator with auto-failover
+- Web-based Visualizer for network status
 
 ---
 
+## Notes
+- Use uv for all dependency and environment management. **Do not use pip or requirements.txt** anymore.
+- The `pyinstaller.spec` file is only needed if you want to build a distributable binary. For development and running, uv is sufficient.
+- For advanced packaging, see [PyInstaller documentation](https://pyinstaller.org/en/stable/).
+
+---
+
+## Troubleshooting
+- If you encounter issues with uv, see the [uv documentation](https://github.com/astral-sh/uv).
+- For packaging issues, refer to the PyInstaller docs.
+
+---
